@@ -1,0 +1,51 @@
+name: Deploy Frontend (Hospital App)
+
+
+on:
+  workflow_dispatch:          # ← CHANGE: removed "push" trigger entirely
+    inputs:
+      deploy_production:
+        description: '🚀 Deploy to Production? (Only after QA approval)'
+        required: true
+        type: boolean
+        default: false
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Deploy via SSH
+        uses: appleboy/ssh-action@v1.0.3
+        with:
+          host: ${{ secrets.HOST }}
+          username: ${{ secrets.USERNAME }}
+          key: ${{ secrets.SSH_KEY }}
+          port: ${{ secrets.PORT }}
+          script: |
+            set -e
+
+            echo "📂 Go to project directory"
+            cd /var/www/Hospital/Hospital_Management_System_node_frontend
+
+            echo "🔐 Fix Git safe directory issue"
+            git config --global --add safe.directory /var/www/Hospital/Hospital_Management_System_node_frontend
+
+            echo "🔄 Pull latest code"
+            git fetch origin main
+            git reset --hard origin/main
+
+            echo "📦 Install dependencies"
+            npm install
+
+            echo "⚙️ Build project"
+            npm run build
+
+            echo "🚀 Restart PM2 app"
+            pm2 delete hospital-frontend || true
+            PORT=3004 pm2 start npm --name "hospital-frontend" -- start
+
+            echo "💾 Save PM2 state"
+            pm2 save
+
+            echo "✅ Deployment completed"

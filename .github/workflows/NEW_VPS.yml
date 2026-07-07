@@ -1,0 +1,55 @@
+name: NEW VPS NIA Frontend Production Deployment
+
+on:
+  push:
+    branches:
+      - main
+  
+
+  workflow_dispatch:
+
+jobs:
+
+  deploy-frontend:
+    runs-on: ubuntu-latest
+
+    steps:
+
+      - name: Checkout Repository
+        uses: actions/checkout@v4
+
+      - name: Deploy Frontend to Production Server
+        uses: appleboy/ssh-action@v1.0.3
+
+        with:
+          host: ${{ secrets.SERVER1_HOST }}
+          username: ${{ secrets.SERVER_USER1 }}
+          key: ${{ secrets.SSH_PRIVATE_KEY1 }}
+
+          script: |
+            echo "Starting Frontend Production Deployment"
+            cd /var/www/Hospital_Web/frontend
+            git config --global --add safe.directory /var/www/Hospital_Web/frontend
+            echo "Fetching latest code"
+            git fetch origin main
+            echo "Hard resetting to latest production code"
+            git reset --hard origin/main
+            echo "Cleaning unwanted files"
+            git clean -fd
+            echo "Installing dependencies"
+            npm install
+            echo "Building Next.js application"
+            npm run build
+            echo "Checking PM2 frontend process"
+            if pm2 describe hospital-frontend > /dev/null
+            then
+              echo "PM2 process exists - reloading"
+              pm2 reload hospital-frontend --update-env
+            else
+              echo "PM2 process not found - starting new process"
+              pm2 start npm --name hospital-frontend -- start -- -p 3004
+            fi
+            echo "Saving PM2 state"
+            pm2 save
+            pm2 list
+            echo "Frontend Production Deployment Completed"

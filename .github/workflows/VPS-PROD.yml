@@ -1,0 +1,87 @@
+name: PROD NEW VPS Frontend Deployment
+
+on:
+  push:
+    branches:
+      - main
+    paths-ignore:
+      - '.github/workflows/**'
+
+  workflow_dispatch:
+
+jobs:
+  deploy-frontend:
+    runs-on: ubuntu-latest
+
+    environment:
+      name: NIA
+
+    steps:
+      - name: Deploy Frontend
+        uses: appleboy/ssh-action@v1.0.3
+
+        with:
+          host: ${{ secrets.SERVER_HOST }}
+          username: ${{ secrets.SERVER_USER }}
+          key: ${{ secrets.SSH_PRIVATE_KEY }}
+          port: 22
+          debug: true
+
+          script: |
+            set -e
+
+            APP_PATH="/var/www/PROD/hospital/frontend"
+            PM2_NAME="PROD-hospital-frontend"
+            APP_PORT="3043"
+
+            echo "===================================="
+            echo "Starting PROD TICKET Frontend Deployment"
+            echo "===================================="
+
+            cd $APP_PATH
+
+            git config --global --add safe.directory $APP_PATH
+
+            echo "Fetching latest code..."
+            git fetch origin main
+
+            echo "Resetting repository..."
+            git reset --hard origin/main
+
+            echo "Cleaning stale files..."
+            git clean -fd
+
+            echo "Removing old dependencies..."
+            rm -rf node_modules
+
+            echo "Installing dependencies..."
+            npm ci
+
+            echo "Node Version:"
+            node -v
+
+            echo "NPM Version:"
+            npm -v
+
+            echo "Building Next.js application..."
+            npm run build
+
+            echo "Managing PM2..."
+
+            if pm2 describe $PM2_NAME > /dev/null 2>&1; then
+              echo "Restarting existing PM2 process..."
+              pm2 restart $PM2_NAME --update-env
+            else
+              echo "Starting PM2 process for first time..."
+              pm2 start npm --name $PM2_NAME -- start -- -p $APP_PORT
+            fi
+
+            echo "Saving PM2 process list..."
+            pm2 save
+
+            echo "PM2 Status:"
+            pm2 list
+
+            echo "===================================="
+            echo "Frontend Deployment Completed"
+            echo "===================================="

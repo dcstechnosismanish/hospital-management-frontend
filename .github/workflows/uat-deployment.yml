@@ -1,0 +1,47 @@
+name: Deploy Frontend UAT (Hospital App)
+
+on:
+  push:
+    branches:
+      - main
+  workflow_dispatch:
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Deploy via SSH
+        uses: appleboy/ssh-action@v1.0.3
+        with:
+          host: ${{ secrets.HOST }}
+          username: ${{ secrets.USERNAME }}
+          key: ${{ secrets.SSH_KEY }}
+          port: ${{ secrets.PORT }}
+          script: |
+            set -e
+
+            echo "📂 Go to project directory"
+            cd /var/www/uat-hospital/Hospital_Management_System_node_frontend
+
+            echo "🔐 Fix Git safe directory issue"
+            git config --global --add safe.directory /var/www/uat-hospital/Hospital_Management_System_node_frontend
+
+            echo "🔄 Pull latest code"
+            git fetch origin main
+            git reset --hard origin/main
+
+            echo "📦 Install dependencies"
+            npm install
+
+            echo "⚙️ Build project"
+            npm run build
+
+            echo "🚀 Restart PM2 app"
+            pm2 delete uat-hospital-frontend || true
+            PORT=4004 pm2 start npm --name "uat-hospital-frontend" -- start
+
+            echo "💾 Save PM2 state"
+            pm2 save
+
+            echo "✅ Deployment completed"
