@@ -1,4 +1,4 @@
-name: Frontend Deployment
+name: Frontend CI/CD
 
 on:
   push:
@@ -18,18 +18,23 @@ jobs:
           key: ${{ secrets.SSH_KEY }}
           port: ${{ secrets.PORT }}
           script: |
+            set -e
+
             cd /root/Hospital_Management_System_node_frontend
 
-            echo "Pulling latest code..."
+            echo "Current Directory"
+            pwd
+
+            echo "Pull latest code"
             git pull origin main
 
-            echo "Installing dependencies..."
+            echo "Installing dependencies"
             npm install
 
-            echo "Building project..."
+            echo "Building Next.js"
             npm run build
 
-            echo "Restarting PM2..."
+            echo "Restarting PM2"
             pm2 restart hospital-frontend
 
-            echo "Deployment completed successfully!"
+            echo "Deployment Successful"
