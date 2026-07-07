@@ -175,7 +175,7 @@ export default function Login() {
 
             {[
               { icon: '🩺', title: 'Hospital Management', sub: 'Patients, doctors, appointments & EMR' },
-              { icon: '💊', title: 'Pharmacy & Inventory', sub: 'Stock, billing & supplier management' },
+              { icon: '💊💊💊', title: 'Pharmacy & Inventory', sub: 'Stock, billing & supplier management' },
               { icon: '🔬', title: 'Laboratory', sub: 'Lab partners, test tracking & reporting' },
             ].map((s, i) => (
               <div key={i} className="stat-pill">
