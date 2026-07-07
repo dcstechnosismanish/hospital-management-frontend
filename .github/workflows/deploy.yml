@@ -1,4 +1,4 @@
-name: Frontend CI/CD
+name: Deploy Frontend
 
 on:
   push:
@@ -11,7 +11,7 @@ jobs:
 
     steps:
       - name: Deploy to EC2
-        uses: appleboy/ssh-action@v1.2.0
+        uses: appleboy/ssh-action@v1.2.2
         with:
           host: ${{ secrets.HOST }}
           username: ${{ secrets.USERNAME }}
@@ -20,21 +20,19 @@ jobs:
           script: |
             set -e
 
-            cd /root/Hospital_Management_System_node_frontend
+            cd /home/ubuntu/Hospital_Management_System_node_frontend
 
-            echo "Current Directory"
-            pwd
+            git config --global --add safe.directory /home/ubuntu/Hospital_Management_System_node_frontend
 
-            echo "Pull latest code"
-            git pull origin main
+            git fetch origin main
+            git reset --hard origin/main
 
-            echo "Installing dependencies"
-            npm install
+            npm ci
 
-            echo "Building Next.js"
             npm run build
 
-            echo "Restarting PM2"
             pm2 restart hospital-frontend
 
-            echo "Deployment Successful"
+            pm2 save
+
+            echo "✅ Frontend deployed successfully"
